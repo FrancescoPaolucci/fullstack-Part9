@@ -1,16 +1,30 @@
-import React from "react";
-import axios from "axios";
-import { Container, Table, Button } from "semantic-ui-react";
-
-import { PatientFormValues } from "../AddPatientModal/AddPatientForm";
-import AddPatientModal from "../AddPatientModal";
-import { Patient } from "../types";
-import { apiBaseUrl } from "../constants";
-import HealthRatingBar from "../components/HealthRatingBar";
-import { useStateValue } from "../state";
+import React from 'react';
+import axios from 'axios';
+import { Container, Table, Button } from 'semantic-ui-react';
+import { PatientFormValues } from '../AddPatientModal/AddPatientForm';
+import AddPatientModal from '../AddPatientModal';
+import { Link } from 'react-router-dom';
+import { Patient } from '../types';
+import { apiBaseUrl } from '../constants';
+import HealthRatingBar from '../components/HealthRatingBar';
+import { useStateValue, addPatient, setPatientList } from '../state';
 
 const PatientListPage = () => {
   const [{ patients }, dispatch] = useStateValue();
+  React.useEffect(() => {
+    const fetchPatientList = async () => {
+      try {
+        const { data: patientListFromApi } = await axios.get<Patient[]>(
+          `${apiBaseUrl}/patients`
+        );
+        dispatch(setPatientList(patientListFromApi));
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    void fetchPatientList();
+  }, [dispatch]);
+  console.log(patients);
 
   const [modalOpen, setModalOpen] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | undefined>();
@@ -28,19 +42,20 @@ const PatientListPage = () => {
         `${apiBaseUrl}/patients`,
         values
       );
-      dispatch({ type: "ADD_PATIENT", payload: newPatient });
+      dispatch(addPatient(newPatient));
       closeModal();
     } catch (e) {
-      console.error("Unknown Error");
-      setError("Unknown error");
+      console.error('Unknown Error');
+      setError('Unknown error');
     }
   };
 
   return (
-    <div className="App">
-      <Container textAlign="center">
+    <div className='App'>
+      <Container textAlign='center'>
         <h3>Patient list</h3>
       </Container>
+
       <Table celled>
         <Table.Header>
           <Table.Row>
@@ -50,10 +65,11 @@ const PatientListPage = () => {
             <Table.HeaderCell>Health Rating</Table.HeaderCell>
           </Table.Row>
         </Table.Header>
+
         <Table.Body>
           {Object.values(patients).map((patient: Patient) => (
             <Table.Row key={patient.id}>
-              <Table.Cell>{patient.name}</Table.Cell>
+              <Link to={`/patients/${patient.id}`}>{patient.name}</Link>
               <Table.Cell>{patient.gender}</Table.Cell>
               <Table.Cell>{patient.occupation}</Table.Cell>
               <Table.Cell>
@@ -63,6 +79,7 @@ const PatientListPage = () => {
           ))}
         </Table.Body>
       </Table>
+
       <AddPatientModal
         modalOpen={modalOpen}
         onSubmit={submitNewPatient}
