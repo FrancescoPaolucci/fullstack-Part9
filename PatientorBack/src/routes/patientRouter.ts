@@ -1,6 +1,6 @@
 import express from 'express';
 import patientService from '../services/patientService';
-import { toNewPatient, parseId, toNewEntry } from '../util';
+import { toNewPatient, toNewEntry } from '../util';
 
 const router = express.Router();
 
@@ -10,7 +10,7 @@ router.get('/', (_req, res) => {
 
 router.get('/:id', (req, res) => {
   console.log(req.params.id);
-  res.send(patientService.getPatientByid(parseId(req.params.id)));
+  res.send(patientService.getPatientByid(req.params.id));
 });
 
 router.post('/', (req, res) => {
@@ -30,17 +30,18 @@ router.post('/', (req, res) => {
 });
 
 router.post('/:id/entries', (req, res) => {
-  try {
-    const newpatient = patientService.getPatientByid(req.params.id);
-    if (!newpatient) {
-      throw new Error('Patient not found');
+  const patient = patientService.getPatientByid(req.params.id);
+  if (patient) {
+    try {
+      const newEntry = toNewEntry(req.body);
+      const updatedPatient = patientService.addEntry(patient, newEntry);
+      res.json(updatedPatient);
+    } catch (error) {
+      const message = (error as Error).message;
+      res.status(400).send({ error: message });
     }
-    const newEntry = toNewEntry(req.body);
-    const updatedPatient = patientService.addEntry(newpatient, newEntry);
-    res.json(updatedPatient);
-  } catch (error) {
-    const message = (error as Error).message;
-    res.status(400).send({ error: message });
+  } else {
+    res.status(404).send({ error: 'Patient not found! check the id again' });
   }
 });
 
